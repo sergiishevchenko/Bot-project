@@ -10,12 +10,22 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                     )
 
 
+def my_test(bot, job):
+    bot.sendMessage(chat_id=840851, text="Lovely Spam! Wonderful Spam!")
+    job.interval += 5
+    if job.interval > 20:
+        bot.sendMessage(chat_id=840851, text="Пока!")
+        job.schedule_removal()
+
+
 def main():
     mybot = Updater(settings.API_KEY)
 
     logging.info('Бот запускается')
 
     dp = mybot.dispatcher
+
+    mybot.job_queue.run_repeating(my_test, interval=5)
 
     anketa = ConversationHandler(
         entry_points=[RegexHandler('^(Заполнить анкету)$', anketa_start, pass_user_data=True)],
