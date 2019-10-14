@@ -3,3 +3,4 @@ settings.py
 .vscode
 __pycache__/
 myenv/
+downloads/
