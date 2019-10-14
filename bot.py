@@ -1,7 +1,7 @@
 import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, RegexHandler
 
-from handlers import greet_user, send_cat_picture, get_contact, change_avatar, get_location, talk_to_me
+from handlers import greet_user, send_cat_picture, get_contact, change_avatar, get_location, talk_to_me, check_user_photo
 import settings
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
@@ -22,6 +22,7 @@ def main():
     dp.add_handler(RegexHandler('^(Сменить аватарку)$', change_avatar, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.contact, get_contact, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.location, get_location, pass_user_data=True))
+    dp.add_handler(MessageHandler(Filters.photo, check_user_photo, pass_user_data=True))
 
     dp.add_handler(MessageHandler(Filters.text, talk_to_me, pass_user_data=True))
 
