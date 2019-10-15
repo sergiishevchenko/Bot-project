@@ -1,6 +1,6 @@
 import logging
 
-from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, Filters, RegexHandler
+from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, Filters, RegexHandler, CallbackQueryHandler
 from telegram.ext import messagequeue as mq
 
 from handlers import *
@@ -43,6 +43,7 @@ def main():
     dp.add_handler(CommandHandler("cat", send_cat_picture, pass_user_data=True))
     dp.add_handler(RegexHandler('^(Прислать котика)$', send_cat_picture, pass_user_data=True))
     dp.add_handler(RegexHandler('^(Сменить аватарку)$', change_avatar, pass_user_data=True))
+    dp.add_handler(CallbackQueryHandler(inline_button_pressed))
     dp.add_handler(MessageHandler(Filters.contact, get_contact, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.location, get_location, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.photo, check_user_photo, pass_user_data=True))
