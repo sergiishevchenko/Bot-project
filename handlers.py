@@ -3,12 +3,13 @@ import logging
 import os
 from random import choice
 
-from telegram import ReplyKeyboardRemove, ReplyKeyboardMarkup, ParseMode
+from telegram import ReplyKeyboardRemove, ReplyKeyboardMarkup, ParseMode, error
 from telegram.ext import ConversationHandler
 from telegram.ext import messagequeue as mq
-from bot import subscribers
 from db import db, get_or_create_user, get_user_emo, toggle_subscription, get_subscribed
 from utils import get_keyboard, is_cat
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from emoji import emojize
 
 
 def greet_user(bot, update, user_data):
@@ -31,10 +32,12 @@ def talk_to_me(bot, update, user_data):
 
 
 def send_cat_picture(bot, update, user_data):
-    user = get_or_create_user(db, update.effective_user, update.message)
     cat_list = glob('images/cat*.jp*g')
     cat_pic = choice(cat_list)
-    bot.send_photo(chat_id=update.message.chat.id, photo=open(cat_pic, 'rb'), reply_markup=get_keyboard())
+    inlinekbd = [[InlineKeyboardButton(emojize(":thumbs_up:"), callback_data='cat_good'),
+                    InlineKeyboardButton(emojize(":thumbs_down:"), callback_data='cat_bad')]]
+    kbd_markup = InlineKeyboardMarkup(inlinekbd)
+    bot.send_photo(chat_id=update.message.chat.id, photo=open(cat_pic, 'rb'), reply_markup=kbd_markup)
 
 
 def change_avatar(bot, update, user_data):
@@ -58,7 +61,6 @@ def get_location(bot, update, user_data):
 
 
 def check_user_photo(bot, update, user_data):
-    user = get_or_create_user(db, update.effective_user, update.message)
     update.message.reply_text("Обрабатываю фото")
     os.makedirs('downloads', exist_ok=True)
     photo_file = bot.getFile(update.message.photo[-1].file_id)
@@ -74,13 +76,11 @@ def check_user_photo(bot, update, user_data):
 
 
 def anketa_start(bot, update, user_data):
-    user = get_or_create_user(db, update.effective_user, update.message)
     update.message.reply_text("Как вас зовут? Напишите имя и фамилию", reply_markup=ReplyKeyboardRemove())
     return "name"
 
 
 def anketa_get_name(bot, update, user_data):
-    user = get_or_create_user(db, update.effective_user, update.message)
     user_name = update.message.text
     if len(user_name.split(" ")) < 2:
         update.message.reply_text("Пожалуйста, напишите имя и фамилию")
@@ -97,7 +97,6 @@ def anketa_get_name(bot, update, user_data):
 
 
 def anketa_rating(bot, update, user_data):
-    user = get_or_create_user(db, update.effective_user, update.message)
     user_data["anketa_rating"] = update.message.text
 
     update.message.reply_text(""" Оставьте комментарий в свободной форме
@@ -106,7 +105,6 @@ def anketa_rating(bot, update, user_data):
 
 
 def anketa_comment(bot, update, user_data):
-    user = get_or_create_user(db, update.effective_user, update.message)
     user_data["anketa_comment"] = update.message.text
     user_text = """
 <b>Имя Фамилия:</b> {anketa_name}
@@ -119,7 +117,6 @@ def anketa_comment(bot, update, user_data):
 
 
 def anketa_skip_comment(bot, update, user_data):
-    user = get_or_create_user(db, update.effective_user, update.message)
     user_text = """
 <b>Имя Фамилия:</b> {anketa_name}
 <b>Оценка:</b> {anketa_rating}""".format(**user_data)
@@ -130,7 +127,6 @@ def anketa_skip_comment(bot, update, user_data):
 
 
 def dontknow(bot, update, user_data):
-    user = get_or_create_user(db, update.effective_user, update.message)
     update.message.reply_text('Не понимаю')
 
 
@@ -139,6 +135,14 @@ def subscribe(bot, update):
     if not user.get('subscribed'):
         toggle_subscription(db, user)
     update.message.reply_text("Вы подписались, наберите /unsubscribe чтобы отписаться")
+
+
+def inline_button_pressed(bot, update):
+    query = update.callback_query
+    if query.data in ['cat_good', 'cat_bad']:
+        text = "Круто" if query.data == "cat_good" else "Печаль"
+
+        bot.edit_message_caption(caption=text, chat_id=query.message.chat_id, message_id=query.message.message_id)
 
 
 @mq.queuedmessage
@@ -170,4 +174,3 @@ def set_alarm(bot, update, args, job_queue):
 @mq.queuedmessage
 def alarm(bot, job):
     bot.send_message(chat_id=job.context, text="Сработал будильник!")
-
